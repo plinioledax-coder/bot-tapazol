@@ -1,6 +1,8 @@
 const { Client, RemoteAuth, LocalAuth } = require("whatsapp-web.js");
 const { PostgresStore } = require("wwebjs-postgres");
 const { Pool } = require("pg");
+const fs = require("fs");
+const path = require("path");
 
 async function criarCliente() {
   const isLinux = process.platform === "linux";
@@ -44,24 +46,49 @@ async function criarCliente() {
   };
 
   if (isLinux) {
-    // Caminhos possíveis do Chromium instalado via apt no Render
-    const fs = require("fs");
+    // Puppeteer instala o Chrome no cache do projeto durante o postinstall
+    // Procura o executável dentro do node_modules/.cache ou no cache padrão
     const possiveisCaminhos = [
-      "/usr/bin/chromium",
-      "/usr/bin/chromium-browser",
-      "/usr/bin/google-chrome",
-      "/usr/bin/google-chrome-stable",
+      // Cache padrão do puppeteer no Render (dentro do projeto, persiste)
+      path.join(process.cwd(), "node_modules", "puppeteer", ".local-chromium"),
+      "/opt/render/.cache/puppeteer/chrome",
     ];
 
-    const caminhoChrome = possiveisCaminhos.find((p) => fs.existsSync(p));
-
-    if (caminhoChrome) {
-      console.log("🌐 Chrome encontrado em:", caminhoChrome);
-      puppeteerOptions.executablePath = caminhoChrome;
-    } else {
-      console.error("❌ Chrome não encontrado em nenhum caminho esperado!");
-      process.exit(1);
+    // Busca recursiva pelo executável 'chrome' nas pastas conhecidas
+    function encontrarChrome(dir) {
+      if (!fs.existsSync(dir)) return null;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const found = encontrarChrome(fullPath);
+          if (found) return found;
+        } else if (entry.name === "chrome" && entry.isFile()) {
+          return fullPath;
+        }
+      }
+      return null;
     }
+
+    let caminhoChrome = null;
+    for (const base of possiveisCaminhos) {
+      caminhoChrome = encontrarChrome(base);
+      if (caminhoChrome) break;
+    }
+
+    // Último recurso: deixa o puppeteer resolver sozinho
+    if (!caminhoChrome) {
+      try {
+        const puppeteer = require("puppeteer");
+        caminhoChrome = puppeteer.executablePath();
+      } catch (e) {
+        console.error("❌ Não conseguiu encontrar o Chrome:", e.message);
+        process.exit(1);
+      }
+    }
+
+    console.log("🌐 Chrome em:", caminhoChrome);
+    puppeteerOptions.executablePath = caminhoChrome;
   }
 
   const client = new Client({
