@@ -38,16 +38,30 @@ async function criarCliente() {
     puppeteerArgs.push("--single-process");
   }
 
-  // No Linux (Render), aponta para o Chrome instalado pelo Puppeteer no build
   const puppeteerOptions = {
     headless: true,
     args: puppeteerArgs,
   };
 
   if (isLinux) {
-    const { executablePath } = require("puppeteer");
-    puppeteerOptions.executablePath = executablePath();
-    console.log("🌐 Chrome em:", puppeteerOptions.executablePath);
+    // Caminhos possíveis do Chromium instalado via apt no Render
+    const fs = require("fs");
+    const possiveisCaminhos = [
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+    ];
+
+    const caminhoChrome = possiveisCaminhos.find((p) => fs.existsSync(p));
+
+    if (caminhoChrome) {
+      console.log("🌐 Chrome encontrado em:", caminhoChrome);
+      puppeteerOptions.executablePath = caminhoChrome;
+    } else {
+      console.error("❌ Chrome não encontrado em nenhum caminho esperado!");
+      process.exit(1);
+    }
   }
 
   const client = new Client({
