@@ -5,8 +5,6 @@ const { Pool } = require("pg");
 async function criarCliente() {
   const isLinux = process.platform === "linux";
 
-  // No Windows, usamos LocalAuth (salva sessão em arquivo local, sem bugs de arquivo bloqueado)
-  // No Linux/Render, usamos RemoteAuth com Supabase (o sistema de arquivos é efêmero lá)
   let authStrategy;
 
   if (isLinux) {
@@ -40,12 +38,21 @@ async function criarCliente() {
     puppeteerArgs.push("--single-process");
   }
 
+  // No Linux (Render), aponta para o Chrome instalado pelo Puppeteer no build
+  const puppeteerOptions = {
+    headless: true,
+    args: puppeteerArgs,
+  };
+
+  if (isLinux) {
+    const { executablePath } = require("puppeteer");
+    puppeteerOptions.executablePath = executablePath();
+    console.log("🌐 Chrome em:", puppeteerOptions.executablePath);
+  }
+
   const client = new Client({
     authStrategy: authStrategy,
-    puppeteer: {
-      headless: true,
-      args: puppeteerArgs,
-    },
+    puppeteer: puppeteerOptions,
   });
 
   client.on("remote_session_saved", () => {
@@ -62,7 +69,6 @@ async function criarCliente() {
     console.log("📱 Escaneie o QR Code acima com o WhatsApp!");
   });
 
-  // Lógica das mensagens (Tapazol)
   client.on("message_create", async (msg) => {
     const numeroAlvo = process.env.NUMERO_NAMORADA.replace("@c.us", "");
 
