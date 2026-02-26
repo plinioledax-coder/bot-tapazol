@@ -92,11 +92,13 @@ async function criarCliente() {
     console.log("✅ Bot conectado e escutando as mensagens!");
   });
 
-  client.on("qr", (qr) => {
+client.on("qr", (qr) => {
+    console.log("==== QR CODE ABAIXO ====");
     const qrcode = require("qrcode-terminal");
     qrcode.generate(qr, { small: true });
+    console.log("==== QR CODE ACIMA ====");
     console.log("📱 Escaneie o QR Code acima com o WhatsApp!");
-  });
+});
 
   client.on("message_create", async (msg) => {
     const numeroAlvo = process.env.NUMERO_NAMORADA.replace("@c.us", "");
