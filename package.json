@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "postinstall": "node -e \"const {execSync} = require('child_process'); try { execSync('npx puppeteer browsers install chrome', {stdio: 'inherit'}); } catch(e) { console.log('Chrome install skipped'); }\""
+    "postinstall": "PUPPETEER_CACHE_DIR=./.puppeteer-cache npx puppeteer browsers install chrome"
   },
   "keywords": [],
   "author": "",

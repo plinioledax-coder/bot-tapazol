@@ -10,6 +10,9 @@ node_modules/
 .wwebjs_auth/
 .wwebjs_cache/
 
+# Chrome instalado pelo Puppeteer (não precisa versionar, postinstall baixa)
+.puppeteer-cache/
+
 # Logs
 logs/
 *.log

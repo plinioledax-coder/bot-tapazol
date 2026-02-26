@@ -46,15 +46,9 @@ async function criarCliente() {
   };
 
   if (isLinux) {
-    // Puppeteer instala o Chrome no cache do projeto durante o postinstall
-    // Procura o executável dentro do node_modules/.cache ou no cache padrão
-    const possiveisCaminhos = [
-      // Cache padrão do puppeteer no Render (dentro do projeto, persiste)
-      path.join(process.cwd(), "node_modules", "puppeteer", ".local-chromium"),
-      "/opt/render/.cache/puppeteer/chrome",
-    ];
+    // Chrome instalado dentro do projeto pelo postinstall (persiste no Render)
+    const cacheDir = path.join(process.cwd(), ".puppeteer-cache");
 
-    // Busca recursiva pelo executável 'chrome' nas pastas conhecidas
     function encontrarChrome(dir) {
       if (!fs.existsSync(dir)) return null;
       const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -70,21 +64,15 @@ async function criarCliente() {
       return null;
     }
 
-    let caminhoChrome = null;
-    for (const base of possiveisCaminhos) {
-      caminhoChrome = encontrarChrome(base);
-      if (caminhoChrome) break;
-    }
+    const caminhoChrome = encontrarChrome(cacheDir);
 
-    // Último recurso: deixa o puppeteer resolver sozinho
     if (!caminhoChrome) {
-      try {
-        const puppeteer = require("puppeteer");
-        caminhoChrome = puppeteer.executablePath();
-      } catch (e) {
-        console.error("❌ Não conseguiu encontrar o Chrome:", e.message);
-        process.exit(1);
-      }
+      console.error("❌ Chrome não encontrado em:", cacheDir);
+      console.error(
+        "Conteúdo do diretório:",
+        fs.existsSync(cacheDir) ? fs.readdirSync(cacheDir) : "pasta não existe",
+      );
+      process.exit(1);
     }
 
     console.log("🌐 Chrome em:", caminhoChrome);
